@@ -12,17 +12,26 @@ export default function Navbar() {
   const supabase = createClient();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user || null;
       setUser(currentUser);
 
       if (currentUser) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .single();
-        setRole(profile?.role || 'viewer');
+        // Retry a few times if the profile isn't ready yet (common in fast signups)
+        const fetchRole = async (retries = 3) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', currentUser.id)
+            .single();
+          
+          if (profile?.role) {
+            setRole(profile.role);
+          } else if (retries > 0) {
+            setTimeout(() => fetchRole(retries - 1), 1000);
+          }
+        };
+        fetchRole();
       } else {
         setRole(null);
       }
