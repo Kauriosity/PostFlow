@@ -37,10 +37,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const origin = window.location.origin;
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/confirm`,
         data: {
           full_name: email.split("@")[0], // Fallback name
         },
